@@ -16,7 +16,7 @@ DeepSeek Harness (DSH) Web UI 的轻量跨平台原生桌面客户端，专为�
 ### 🌟 核心亮点
 
 - **系统级原生轻量架构**：
-  - **macOS**：采用 Swift (`AppKit + WebKit`) 原生单进程实现，产物仅 ~500KB，DMG 安装包仅 **~276KB**。
+  - **macOS**：基于 Swift (`AppKit + WebKit`) 原生单进程实现，产物仅 ~500KB，DMG 安装包仅 **~276KB**。
   - **Linux**：基于 `GTK3 + WebKit2GTK`，无缝适配 GNOME / KDE / XFCE 等各大主流桌面环境。
   - **Windows**：基于 Microsoft Edge `WebView2` 原生内核与 C# 启动器，安装包仅 **< 1MB**。
 - **macOS Universal 2 双架构原生加速**：同时提供 Apple Silicon (`arm64`) 与 Intel (`x86_64`) 原生架构支持。
@@ -42,75 +42,65 @@ DeepSeek Harness (DSH) Web UI 的轻量跨平台原生桌面客户端，专为�
 
 ---
 
-## 三、安装与环境就绪
+## 三、快速安装与使用指南
 
-项目安装脚本内置了**环境智能检测与自动安装引擎**：
-- 安装时会自动探测本机是否已安装 `dsh`；
-- 若未检测到，会自动调用包管理器（`npm` / `pnpm` / `yarn` / `bun` 等）自动为您全局安装 `@deepseek-ai/dsh`；
-- 依赖就绪后自动完成桌面客户端的编译与部署。
+> 💡 **自动就绪特性**：本项目安装脚本内置环境检测引擎，会自动探测并在必要时协助配置 `@deepseek-ai/dsh` 核心服务，实现全自动一键就绪。
 
----
+### 🍎 macOS
 
-## 四、跨平台快速安装指南
-
-### 1. macOS 安装
-
-#### 方式 A：一键编译并安装至系统
+#### 方式 1：一键安装（推荐）
+在项目根目录下执行以下命令，脚本将自动完成依赖检测、双架构编译并部署至 `/Applications`：
 ```bash
-# 1. 编译 Universal 2 双架构二进制并组装应用
-bash scripts/assemble.sh
-
-# 2. 安装至 /Applications 并刷新系统缓存
 bash scripts/install.sh
 ```
+*启动方式：在启动台/程序坞中点击 `DSH Web`，或在终端执行 `open -a "DSH Web"`。*
 
-#### 方式 B：打包 DMG 安装映像（用于分发）
-```bash
-bash scripts/package-dmg.sh
-# 生成的安装包位于 dist/DSH-Web-Desktop-macOS.dmg
-```
+#### 方式 2：下载 DMG 安装包
+前往 [GitHub Releases](https://github.com/Dinis0214/dsh-web-desktop/releases) 下载 `DSH-Web-Desktop-macOS.dmg`，双击后将 `DSH Web.app` 拖入 `Applications` 文件夹即可。
 
 ---
 
-### 2. Linux 安装
+### 🐧 Linux
 
-#### 安装系统依赖
+#### 1. 安装基础依赖
 - **Ubuntu / Debian**：
   ```bash
-  sudo apt update
-  sudo apt install -y libgtk-3-0 libwebkit2gtk-4.1-0 python3-gi
+  sudo apt update && sudo apt install -y libgtk-3-0 libwebkit2gtk-4.1-0 python3-gi
   ```
 - **Fedora / RHEL**：
   ```bash
   sudo dnf install -y gtk3 webkit2gtk4.1 python3-gobject
   ```
+- **Arch Linux**：
+  ```bash
+  sudo pacman -S gtk3 webkit2gtk-4.1 python-gobject
+  ```
 
-#### 一键安装
+#### 2. 一键安装
 ```bash
-# 安装至 ~/.local/bin，并注册桌面图标与 systemd 用户守护
 bash scripts/install.sh
 ```
+*安装后将自动注册应用启动器图标与 `systemd --user` 用户级常驻守护，亦可在终端直接运行 `dsh-web` 启动。*
 
 ---
 
-### 3. Windows 安装
+### 🪟 Windows
 
-#### 方式 A：编译原生 C# / WebView2 可执行文件
+#### 方式 1：一键安装至开始菜单（推荐）
+在 PowerShell 中运行安装脚本：
 ```powershell
-# 需要 .NET 8.0 SDK
-pwsh scripts/build-windows.ps1
-pwsh scripts/install-windows.ps1
+powershell -ExecutionPolicy Bypass -File scripts\install-windows.ps1
 ```
+*安装后可在 Windows「开始菜单」中直接点击 `DSH Web` 图标启动。*
 
-#### 方式 B：免编译快速启动
-直接在 PowerShell 中运行启动器：
+#### 方式 2：免安装即时启动
 ```powershell
 powershell -ExecutionPolicy Bypass -File windows\launcher.ps1
 ```
 
 ---
 
-## 五、目录结构
+## 四、目录结构
 
 ```
 dsh-web-desktop/
@@ -159,7 +149,7 @@ dsh-web-desktop/
 
 ---
 
-## 六、配置自定义（可选）
+## 五、配置自定义（可选）
 
 客户端配置文件路径：
 - **macOS**：`~/Library/Application Support/DSH Web/config.json`
@@ -181,6 +171,6 @@ dsh-web-desktop/
 
 ---
 
-## 七、开源协议
+## 六、开源协议
 
 本项目基于 [MIT License](LICENSE) 开源。

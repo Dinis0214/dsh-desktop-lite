@@ -1,11 +1,11 @@
-# DSH Web Desktop (DeepSeek Harness 桌面应用)
+# DSH Desktop Lite (DeepSeek Harness 轻量化桌面)
 
-[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](https://github.com/Dinis0214/dsh-web-desktop)
-[![Architecture](https://img.shields.io/badge/arch-Universal%20%7C%20x64%20%7C%20arm64-blue.svg)](https://github.com/Dinis0214/dsh-web-desktop)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)](https://github.com/Dinis0214/dsh-desktop-lite)
+[![Architecture](https://img.shields.io/badge/arch-Universal%20%7C%20x64%20%7C%20arm64-blue.svg)](https://github.com/Dinis0214/dsh-desktop-lite)
 [![dsh-plugin](https://img.shields.io/badge/tag-dsh--plugin-brightgreen.svg)](https://github.com/topics/dsh-plugin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-DeepSeek Harness (DSH) Web UI 的轻量跨平台原生桌面客户端，专为高效、沉浸的人机协同体验设计。
+DeepSeek Harness (DSH) Web UI 的超轻量跨平台原生桌面客户端，专为极致性能与高效协同设计。
 
 ---
 
@@ -56,7 +56,7 @@ bash scripts/install.sh
 *启动方式：在启动台/程序坞中点击 `DSH Web`，或在终端执行 `open -a "DSH Web"`。*
 
 #### 方式 2：下载 DMG 安装包
-前往 [GitHub Releases](https://github.com/Dinis0214/dsh-web-desktop/releases) 下载 `DSH-Web-Desktop-macOS.dmg`，双击后将 `DSH Web.app` 拖入 `Applications` 文件夹即可。
+前往 [GitHub Releases](https://github.com/Dinis0214/dsh-desktop-lite/releases) 下载 `DSH-Web-Desktop-macOS.dmg`，双击后将 `DSH Web.app` 拖入 `Applications` 文件夹即可。
 
 ---
 

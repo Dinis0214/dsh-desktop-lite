@@ -11,6 +11,8 @@ import signal
 import socket
 import subprocess
 import fcntl
+import webbrowser
+from urllib.parse import urlparse
 from pathlib import Path
 
 HOME = str(Path.home())
@@ -238,6 +240,37 @@ def run_gui():
     # WebKit View
     webview = WebKit2.WebView()
     win.add(webview)
+
+    def on_decide_policy(view, decision, decision_type):
+        if decision_type == WebKit2.PolicyDecisionType.NAVIGATION_ACTION:
+            nav_action = decision.get_navigation_action()
+            req = nav_action.get_request()
+            uri = req.get_uri()
+            if uri:
+                parsed = urlparse(uri)
+                scheme = (parsed.scheme or "").lower()
+                if scheme in ["http", "https"]:
+                    hostname = (parsed.hostname or "").lower()
+                    is_local = (hostname in [HOST, "localhost", "127.0.0.1"]) and (parsed.port == port or parsed.port is None)
+                    if nav_action.is_user_gesture() and not is_local:
+                        decision.ignore()
+                        webbrowser.open(uri)
+                        return True
+                elif scheme and scheme != "about":
+                    decision.ignore()
+                    webbrowser.open(uri)
+                    return True
+        elif decision_type == WebKit2.PolicyDecisionType.NEW_WINDOW_ACTION:
+            nav_action = decision.get_navigation_action()
+            req = nav_action.get_request()
+            uri = req.get_uri()
+            if uri:
+                decision.ignore()
+                webbrowser.open(uri)
+                return True
+        return False
+
+    webview.connect("decide-policy", on_decide_policy)
 
     def on_reload_clicked(btn):
         webview.reload()

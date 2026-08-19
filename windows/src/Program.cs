@@ -130,6 +130,36 @@ namespace DshWeb
                 string userDataFolder = Path.Combine(_appDataDir, "WebView2Data");
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
                 await _webView!.EnsureCoreWebView2Async(env);
+
+                _webView.CoreWebView2.NewWindowRequested += (sender, e) =>
+                {
+                    e.Handled = true;
+                    if (!string.IsNullOrEmpty(e.Uri))
+                    {
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo(e.Uri) { UseShellExecute = true });
+                        }
+                        catch { }
+                    }
+                };
+
+                _webView.CoreWebView2.NavigationStarting += (sender, e) =>
+                {
+                    if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri))
+                    {
+                        bool isLocal = (uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)) && uri.Port == _config.Port;
+                        if (!isLocal && e.IsUserInitiated)
+                        {
+                            e.Cancel = true;
+                            try
+                            {
+                                Process.Start(new ProcessStartInfo(e.Uri) { UseShellExecute = true });
+                            }
+                            catch { }
+                        }
+                    }
+                };
             }
             catch (Exception ex)
             {

@@ -485,6 +485,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
 
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        
+        let scheme = url.scheme?.lowercased() ?? ""
+        if scheme == "http" || scheme == "https" {
+            let hostStr = url.host?.lowercased() ?? ""
+            let isLocal = (hostStr == "127.0.0.1" || hostStr == "localhost" || hostStr == host.lowercased()) && (url.port == port || url.port == nil)
+            
+            if navigationAction.navigationType == .linkActivated {
+                if !isLocal || navigationAction.targetFrame == nil {
+                    NSWorkspace.shared.open(url)
+                    decisionHandler(.cancel)
+                    return
+                }
+            }
+            
+            if navigationAction.targetFrame == nil {
+                if !isLocal {
+                    NSWorkspace.shared.open(url)
+                } else {
+                    webView.load(navigationAction.request)
+                }
+                decisionHandler(.cancel)
+                return
+            }
+        } else if !scheme.isEmpty && scheme != "about" {
+            NSWorkspace.shared.open(url)
+            decisionHandler(.cancel)
+            return
+        }
+        
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if let url = navigationAction.request.url {
+            let hostStr = url.host?.lowercased() ?? ""
+            let isLocal = (hostStr == "127.0.0.1" || hostStr == "localhost" || hostStr == host.lowercased()) && (url.port == port || url.port == nil)
+            if !isLocal {
+                NSWorkspace.shared.open(url)
+            } else {
+                webView.load(navigationAction.request)
+            }
+        }
+        return nil
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         loadingSpinner?.stopAnimation(nil)
         loadingSpinner?.removeFromSuperview()

@@ -220,9 +220,9 @@ def run_gui():
     mode_btn.set_label("运行模式")
     mode_menu = Gtk.Menu()
 
-    keepalive_item = Gtk.RadioMenuItem(label="常驻守护模式 (KeepAlive / 自动重启)")
+    keepalive_item = Gtk.RadioMenuItem(label="常驻模式")
     normal_item = Gtk.RadioMenuItem.new_from_widget(keepalive_item)
-    normal_item.set_label("随窗口起停模式 (关窗即停服务)")
+    normal_item.set_label("随窗模式")
 
     if config.get("keepAlive", True):
         keepalive_item.set_active(True)
@@ -260,14 +260,14 @@ def run_gui():
             config["keepAlive"] = True
             save_config(config)
             configure_systemd_service(True, config)
-            show_alert("已切换为：常驻守护模式", "系统已配置 systemd 用户服务守护。\n- 后台服务异常退出时 5 秒内自动重启。\n- 关闭界面不会中断后台任务。")
+            show_alert("已切换为：常驻模式", "系统已启用常驻守护：\n- 后台服务异常退出时 5 秒内自动重启。\n- 关闭界面不中断后台任务。")
 
     def on_normal_toggled(item):
         if item.get_active():
             config["keepAlive"] = False
             save_config(config)
             configure_systemd_service(False, config)
-            show_alert("已切换为：随窗口起停模式", "已移除 systemd 用户服务。\n- 关闭窗口时将停止后台服务并释放端口。")
+            show_alert("已切换为：随窗模式", "已移除常驻守护：\n- 关闭窗口时将停止后台服务并释放端口。")
 
     keepalive_item.connect("toggled", on_keepalive_toggled)
     normal_item.connect("toggled", on_normal_toggled)

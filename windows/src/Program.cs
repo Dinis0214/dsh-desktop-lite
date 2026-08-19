@@ -64,8 +64,8 @@ namespace DshWeb
             var menuStrip = new MenuStrip();
 
             var modeMenu = new ToolStripMenuItem("运行模式 (&M)");
-            _keepAliveMenuItem = new ToolStripMenuItem("常驻守护模式 (KeepAlive / 自动重启)", null, OnKeepAliveClicked) { Checked = _config.KeepAlive };
-            _normalMenuItem = new ToolStripMenuItem("随窗口起停模式 (关窗即停服务)", null, OnNormalClicked) { Checked = !_config.KeepAlive };
+            _keepAliveMenuItem = new ToolStripMenuItem("常驻模式", null, OnKeepAliveClicked) { Checked = _config.KeepAlive };
+            _normalMenuItem = new ToolStripMenuItem("随窗模式", null, OnNormalClicked) { Checked = !_config.KeepAlive };
             modeMenu.DropDownItems.Add(_keepAliveMenuItem);
             modeMenu.DropDownItems.Add(_normalMenuItem);
 
@@ -163,7 +163,7 @@ namespace DshWeb
             _normalMenuItem!.Checked = false;
             SaveConfig();
             StartBackendWithWatchdog();
-            MessageBox.Show("已切换为：常驻守护模式\n\n- 后台服务异常退出时将自动重启。\n- 关闭窗口后后台服务与远程连接将保持 24/7 运行。\n- 可通过托盘图标随时唤出窗口。", "运行模式切换", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("已切换为：常驻模式\n\n- 后台服务异常退出时将自动重启。\n- 关闭窗口后后台服务与远程连接将保持 24/7 运行。\n- 可通过托盘图标随时唤出窗口。", "运行模式切换", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnNormalClicked(object? sender, EventArgs e)
@@ -173,7 +173,7 @@ namespace DshWeb
             _normalMenuItem!.Checked = true;
             _watchdogCts?.Cancel();
             SaveConfig();
-            MessageBox.Show("已切换为：随窗口起停模式\n\n- 关闭窗口时将彻底停止后台服务并释放端口。", "运行模式切换", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("已切换为：随窗模式\n\n- 关闭窗口时将彻底停止后台服务并释放端口。", "运行模式切换", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void SaveConfig()

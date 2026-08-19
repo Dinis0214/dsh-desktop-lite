@@ -1,14 +1,14 @@
 // DSH Web — Native Desktop Application with Mode Selection (Normal / KeepAlive)
 //
 // Modes:
-// 1. KeepAlive Mode (常驻守护模式):
+// 1. 常驻模式 (KeepAlive Mode):
 //    - Backend is managed by launchd KeepAlive (always running, auto-restart on crash/reboot).
 //    - Window close hides window or terminates GUI while backend keeps working.
 //    - Remote and local access 24/7 uninterrupted.
-// 2. Normal Mode (随窗口起停模式):
+// 2. 随窗模式 (Normal Mode):
 //    - Opening window starts backend, closing window kills backend and releases port 3080.
 //
-// Mode can be toggled via Top Menu Bar: [模式选择 -> KeepAlive 守护模式 / 随窗口起停模式]
+// Mode can be toggled via Top Menu Bar: [运行模式 -> 常驻模式 / 随窗模式]
 // Preference is persisted in ~/Library/Application Support/DSH Web/config.json
 
 import AppKit
@@ -293,12 +293,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         modeHeader.isEnabled = false
         appMenu.addItem(modeHeader)
         
-        let a1 = NSMenuItem(title: "常驻守护模式 (KeepAlive / 自动重启)", action: #selector(selectKeepAliveMode), keyEquivalent: "1")
+        let a1 = NSMenuItem(title: "常驻模式", action: #selector(selectKeepAliveMode), keyEquivalent: "1")
         a1.target = self
         appMenu.addItem(a1)
         appKeepAliveItem = a1
         
-        let a2 = NSMenuItem(title: "随窗口起停模式 (关窗即停服务)", action: #selector(selectNormalMode), keyEquivalent: "2")
+        let a2 = NSMenuItem(title: "随窗模式", action: #selector(selectNormalMode), keyEquivalent: "2")
         a2.target = self
         appMenu.addItem(a2)
         appNormalItem = a2
@@ -331,12 +331,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         modeTopMenu.autoenablesItems = false
         modeTopMenu.delegate = self
         
-        let m1 = NSMenuItem(title: "常驻守护模式 (KeepAlive / 自动重启)", action: #selector(selectKeepAliveMode), keyEquivalent: "")
+        let m1 = NSMenuItem(title: "常驻模式", action: #selector(selectKeepAliveMode), keyEquivalent: "")
         m1.target = self
         modeTopMenu.addItem(m1)
         topKeepAliveItem = m1
         
-        let m2 = NSMenuItem(title: "随窗口起停模式 (关窗即停服务)", action: #selector(selectNormalMode), keyEquivalent: "")
+        let m2 = NSMenuItem(title: "随窗模式", action: #selector(selectNormalMode), keyEquivalent: "")
         m2.target = self
         modeTopMenu.addItem(m2)
         topNormalItem = m2
@@ -391,8 +391,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         logLine("switched to KeepAlive mode")
         
         let alert = NSAlert()
-        alert.messageText = "已切换为：常驻守护模式"
-        alert.informativeText = "系统已配置 KeepAlive 守护。\n- 后台服务异常退出时 5 秒内自动重启。\n- 关闭界面不会中断后台挂机任务。\n- 随时可在菜单栏切换回普通模式。"
+        alert.messageText = "已切换为：常驻模式"
+        alert.informativeText = "系统已启用常驻守护：\n- 服务异常退出时 5 秒内自动重启。\n- 关闭窗口不中断后台挂机任务。\n- 随时可在菜单栏切换回随窗模式。"
         alert.alertStyle = .informational
         alert.runModal()
     }
@@ -405,8 +405,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         logLine("switched to Normal mode")
         
         let alert = NSAlert()
-        alert.messageText = "已切换为：随窗口起停模式"
-        alert.informativeText = "已移除 KeepAlive 守护。\n- 关闭窗口时将彻底停止后台 node 服务并释放 \(port) 端口。"
+        alert.messageText = "已切换为：随窗模式"
+        alert.informativeText = "已移除常驻守护：\n- 关闭窗口时将停止后台服务并释放 \(port) 端口。"
         alert.alertStyle = .informational
         alert.runModal()
     }
@@ -414,14 +414,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func updateMenuStates() {
         let isKeep = config.keepAlive
         appKeepAliveItem?.state = isKeep ? .on : .off
-        appKeepAliveItem?.title = "常驻守护模式 (KeepAlive / 自动重启)"
+        appKeepAliveItem?.title = "常驻模式"
         appNormalItem?.state = isKeep ? .off : .on
-        appNormalItem?.title = "随窗口起停模式 (关窗即停服务)"
+        appNormalItem?.title = "随窗模式"
         
         topKeepAliveItem?.state = isKeep ? .on : .off
-        topKeepAliveItem?.title = "常驻守护模式 (KeepAlive / 自动重启)"
+        topKeepAliveItem?.title = "常驻模式"
         topNormalItem?.state = isKeep ? .off : .on
-        topNormalItem?.title = "随窗口起停模式 (关窗即停服务)"
+        topNormalItem?.title = "随窗模式"
     }
     
     @objc func reloadPage() {

@@ -1,0 +1,105 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Icon and Universal App
+        run: |
+          bash scripts/build-icon.sh
+          bash scripts/assemble.sh
+          bash scripts/package-dmg.sh
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSH-Web-Desktop-macOS
+          path: dist/DSH-Web-Desktop-macOS.dmg
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Build Linux Client
+        run: |
+          bash scripts/build-linux.sh
+
+      - name: Package Linux
+        run: |
+          mkdir -p dist/linux-package
+          cp dist/linux/dsh-web dist/linux-package/
+          cp -r assets dist/linux-package/
+          cp -r scripts dist/linux-package/
+          tar -czvf dist/dsh-web-linux.tar.gz -C dist/linux-package .
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSH-Web-Desktop-Linux
+          path: dist/dsh-web-linux.tar.gz
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build Windows Client
+        run: |
+          pwsh scripts/build-windows.ps1
+
+      - name: Package Windows
+        shell: pwsh
+        run: |
+          $dist = "dist\windows-package"
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          Copy-Item "dist\windows\*" -Destination $dist -Recurse -Force
+          Copy-Item -Path "assets" -Destination $dist -Recurse -Force
+          Compress-Archive -Path "$dist\*" -DestinationPath "dist\DSH-Web-Desktop-Windows.zip" -Force
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSH-Web-Desktop-Windows
+          path: dist/DSH-Web-Desktop-Windows.zip
+
+  release:
+    needs: [build-macos, build-linux, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/DSH-Web-Desktop-macOS/DSH-Web-Desktop-macOS.dmg
+            release-artifacts/DSH-Web-Desktop-Linux/dsh-web-linux.tar.gz
+            release-artifacts/DSH-Web-Desktop-Windows/DSH-Web-Desktop-Windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,18 @@
+[Unit]
+Description=DeepSeek Harness Web Backend Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env dsh web --port 3080
+Restart=always
+RestartSec=5
+WorkingDirectory=%h
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin:%h/.nvm/versions/node/default/bin"
+Environment="NO_PROXY=localhost,127.0.0.1"
+Environment="no_proxy=localhost,127.0.0.1"
+StandardOutput=append:%h/.local/share/dsh-web/logs/dsh-web.log
+StandardError=append:%h/.local/share/dsh-web/logs/dsh-web.log
+
+[Install]
+WantedBy=default.target

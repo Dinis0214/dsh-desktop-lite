@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=DSH Web
+GenericName=DeepSeek Harness Desktop
+Comment=Native Desktop Client for DeepSeek Harness Web UI
+Exec=dsh-web
+Icon=dsh-web
+Terminal=false
+Categories=Development;Utility;
+Keywords=dsh-plugin;deepseek;ai;harness;llm;
+StartupNotify=true

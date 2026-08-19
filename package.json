@@ -1,0 +1,30 @@
+{
+  "name": "dsh-web-desktop",
+  "version": "0.1.0",
+  "description": "Lightweight cross-platform native desktop client for DeepSeek Harness (DSH)",
+  "main": "linux/src/dsh-web.py",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "desktop",
+    "webkit",
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "author": "Dinis0214",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dinis0214/dsh-web-desktop.git"
+  },
+  "scripts": {
+    "build:macos": "bash scripts/assemble.sh",
+    "build:linux": "bash scripts/build-linux.sh",
+    "build:windows": "pwsh scripts/build-windows.ps1",
+    "package:macos": "bash scripts/package-dmg.sh",
+    "install": "bash scripts/install.sh"
+  }
+}

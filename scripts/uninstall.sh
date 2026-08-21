@@ -18,9 +18,13 @@ if [ "$OS" = "Darwin" ]; then
 
     launchctl bootout "gui/$UID_NUM/$LABEL_AUTOSTART" 2>/dev/null || true
     launchctl bootout "gui/$UID_NUM/$LABEL_SERVICE" 2>/dev/null || true
+    launchctl bootout "gui/$UID_NUM/com.dennis.dsh-web-desktop" 2>/dev/null || true
+    launchctl bootout "gui/$UID_NUM/com.dennis.dsh-web" 2>/dev/null || true
     
     rm -f "$HOME/Library/LaunchAgents/$LABEL_AUTOSTART.plist"
     rm -f "$HOME/Library/LaunchAgents/$LABEL_SERVICE.plist"
+    rm -f "$HOME/Library/LaunchAgents/com.dennis.dsh-web-desktop.plist"
+    rm -f "$HOME/Library/LaunchAgents/com.dennis.dsh-web.plist"
     
     [ -d "$APP" ] && rm -rf "$APP" && echo "app removed from /Applications"
     /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$APP" 2>/dev/null || true

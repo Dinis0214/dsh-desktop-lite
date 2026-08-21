@@ -26,6 +26,9 @@ fi
 
 if [ "$ACTION" = "--stop" ]; then
     launchctl disable "gui/$UID_NUM/$LABEL" 2>/dev/null || true
+    launchctl disable "gui/$UID_NUM/com.dennis.dsh-web" 2>/dev/null || true
+    launchctl bootout "gui/$UID_NUM/com.dennis.dsh-web" 2>/dev/null || true
+    rm -f "$HOME/Library/LaunchAgents/com.dennis.dsh-web.plist"
     if launchctl print "gui/$UID_NUM/$LABEL" >/dev/null 2>&1; then
         launchctl bootout "gui/$UID_NUM/$LABEL" 2>/dev/null || true
         echo "service stopped"

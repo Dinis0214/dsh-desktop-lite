@@ -117,6 +117,32 @@ def is_port_in_use(port):
         s.settimeout(1.0)
         return s.connect_ex((HOST, port)) == 0
 
+def kill_port_holders(port):
+    try:
+        # Try fuser first if available
+        subprocess.run(["fuser", "-k", f"{port}/tcp"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    except Exception:
+        pass
+    try:
+        # Fallback to lsof
+        res = subprocess.run(["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"], capture_output=True, text=True, check=False)
+        pids = [int(p.strip()) for p in res.stdout.split() if p.strip().isdigit() and int(p.strip()) != os.getpid()]
+        for p in pids:
+            try:
+                os.kill(p, signal.SIGTERM)
+            except Exception:
+                pass
+        if pids:
+            import time
+            time.sleep(0.3)
+            for p in pids:
+                try:
+                    os.kill(p, signal.SIGKILL)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
 def configure_systemd_service(enable, cfg):
     if enable:
         cmd = resolve_backend_command(cfg)
@@ -288,11 +314,30 @@ def run_gui():
         dialog.run()
         dialog.destroy()
 
+    def stop_direct_backend():
+        nonlocal backend_proc
+        if backend_proc:
+            try:
+                try:
+                    os.killpg(os.getpgid(backend_proc.pid), signal.SIGTERM)
+                except Exception:
+                    backend_proc.terminate()
+                backend_proc.wait(timeout=2)
+            except Exception:
+                try:
+                    os.killpg(os.getpgid(backend_proc.pid), signal.SIGKILL)
+                except Exception:
+                    backend_proc.kill()
+        backend_proc = None
+        kill_port_holders(port)
+
     def on_keepalive_toggled(item):
         if item.get_active():
             config["keepAlive"] = True
             save_config(config)
+            stop_direct_backend()
             configure_systemd_service(True, config)
+            GLib.timeout_add(500, poll_and_load)
             show_alert("已切换为：常驻模式", "系统已启用常驻守护：\n- 后台服务异常退出时 5 秒内自动重启。\n- 关闭界面不中断后台任务。")
 
     def on_normal_toggled(item):
@@ -300,6 +345,8 @@ def run_gui():
             config["keepAlive"] = False
             save_config(config)
             configure_systemd_service(False, config)
+            stop_direct_backend()
+            spawn_backend()
             show_alert("已切换为：随窗模式", "已移除常驻守护：\n- 关闭窗口时将停止后台服务并释放端口。")
 
     keepalive_item.connect("toggled", on_keepalive_toggled)
@@ -335,6 +382,7 @@ def run_gui():
             env=env,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            preexec_fn=os.setsid,
         )
         GLib.timeout_add(500, poll_and_load)
 
@@ -343,18 +391,14 @@ def run_gui():
         configure_systemd_service(True, config)
         GLib.timeout_add(500, poll_and_load)
     else:
+        configure_systemd_service(False, config)
         if is_port_in_use(port):
-            webview.load_uri(web_url)
-        else:
-            spawn_backend()
+            kill_port_holders(port)
+        spawn_backend()
 
     def on_destroy(w):
-        if not config.get("keepAlive", True) and backend_proc:
-            try:
-                backend_proc.terminate()
-                backend_proc.wait(timeout=2)
-            except Exception:
-                backend_proc.kill()
+        if not config.get("keepAlive", True):
+            stop_direct_backend()
         Gtk.main_quit()
 
     win.connect("destroy", on_destroy)

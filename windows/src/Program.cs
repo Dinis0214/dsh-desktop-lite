@@ -111,13 +111,45 @@ namespace DshWeb
             Activate();
         }
 
+        private void StopDirectBackend()
+        {
+            try
+            {
+                if (_dshProcess != null && !_dshProcess.HasExited)
+                {
+                    _dshProcess.Kill(true);
+                    _dshProcess.WaitForExit(2000);
+                }
+            }
+            catch { }
+            _dshProcess = null;
+            KillPortHolders(_config.Port);
+        }
+
+        private static void KillPortHolders(int port)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -NonInteractive -Command \"Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+                var p = Process.Start(psi);
+                p?.WaitForExit(3000);
+            }
+            catch { }
+        }
+
         private void ExitApplication()
         {
             _isExiting = true;
             _watchdogCts?.Cancel();
-            if (!_config.KeepAlive && _dshProcess != null && !_dshProcess.HasExited)
+            if (!_config.KeepAlive)
             {
-                try { _dshProcess.Kill(true); } catch { }
+                StopDirectBackend();
             }
             _trayIcon?.Dispose();
             Application.Exit();
@@ -174,15 +206,13 @@ namespace DshWeb
             }
             else
             {
+                _watchdogCts?.Cancel();
                 if (!IsPortFree(_config.Port))
                 {
-                    PollAndLoadWebUI();
+                    KillPortHolders(_config.Port);
                 }
-                else
-                {
-                    SpawnBackendDirect();
-                    PollAndLoadWebUI();
-                }
+                SpawnBackendDirect();
+                PollAndLoadWebUI();
             }
         }
 
@@ -192,7 +222,9 @@ namespace DshWeb
             _keepAliveMenuItem!.Checked = true;
             _normalMenuItem!.Checked = false;
             SaveConfig();
+            StopDirectBackend();
             StartBackendWithWatchdog();
+            PollAndLoadWebUI();
             MessageBox.Show("已切换为：常驻模式\n\n- 后台服务异常退出时将自动重启。\n- 关闭窗口后后台服务与远程连接将保持 24/7 运行。\n- 可通过托盘图标随时唤出窗口。", "运行模式切换", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -203,6 +235,9 @@ namespace DshWeb
             _normalMenuItem!.Checked = true;
             _watchdogCts?.Cancel();
             SaveConfig();
+            StopDirectBackend();
+            SpawnBackendDirect();
+            PollAndLoadWebUI();
             MessageBox.Show("已切换为：随窗模式\n\n- 关闭窗口时将彻底停止后台服务并释放端口。", "运行模式切换", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 

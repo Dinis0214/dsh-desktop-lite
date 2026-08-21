@@ -21,6 +21,7 @@ let defaultPort = 3080
 let host = "127.0.0.1"
 
 let serviceLabel = "ai.deepseek.dsh-web"
+let legacyServiceLabel = "com.dennis.dsh-web"
 let appBundleId = "ai.deepseek.dsh-web-desktop"
 
 let supportDir = home + "/Library/Application Support/DSH Web"
@@ -29,6 +30,7 @@ let logDir = home + "/Library/Logs/DSH Web"
 let launcherLogPath = logDir + "/launcher.log"
 let dshLogPath = logDir + "/dsh-web.log"
 let servicePlist = home + "/Library/LaunchAgents/\(serviceLabel).plist"
+let legacyServicePlist = home + "/Library/LaunchAgents/\(legacyServiceLabel).plist"
 
 func logLine(_ message: String) {
     let stamp = ISO8601DateFormatter().string(from: Date())
@@ -160,6 +162,36 @@ func isPortFree(_ port: Int) -> Bool {
     return p.terminationStatus != 0
 }
 
+func killPortHolders(_ port: Int) {
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+    p.arguments = ["-nP", "-iTCP:\(port)", "-sTCP:LISTEN", "-t"]
+    let pipe = Pipe()
+    p.standardOutput = pipe
+    p.standardError = FileHandle.nullDevice
+    try? p.run()
+    p.waitUntilExit()
+    
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    guard let out = String(data: data, encoding: .utf8) else { return }
+    let myPid = getpid()
+    let pids = out.split(whereSeparator: { $0.isNewline || $0.isWhitespace })
+        .compactMap { Int32($0) }
+        .filter { $0 != myPid && $0 > 1 }
+    
+    for pid in pids {
+        kill(pid, SIGTERM)
+    }
+    if !pids.isEmpty {
+        usleep(300_000)
+        for pid in pids {
+            if kill(pid, 0) == 0 {
+                kill(pid, SIGKILL)
+            }
+        }
+    }
+}
+
 var lockFd: Int32 = -1
 func acquireSingleInstanceLock() -> Bool {
     lockFd = open(supportDir + "/launcher.lock", O_CREAT | O_RDWR, 0o644)
@@ -169,6 +201,14 @@ func acquireSingleInstanceLock() -> Bool {
 
 func setupLaunchdKeepAlive(enable: Bool, config: AppConfig) {
     let uid = getuid()
+    // Always clean legacy service if present
+    let legacyProc = Process()
+    legacyProc.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+    legacyProc.arguments = ["bootout", "gui/\(uid)/\(legacyServiceLabel)"]
+    try? legacyProc.run()
+    legacyProc.waitUntilExit()
+    try? fm.removeItem(atPath: legacyServicePlist)
+    
     if enable {
         guard let backend = resolveBackendCommand(config: config) else {
             logLine("setupLaunchdKeepAlive failed: backend command could not be resolved")
@@ -228,6 +268,13 @@ func setupLaunchdKeepAlive(enable: Bool, config: AppConfig) {
         proc.arguments = ["bootout", "gui/\(uid)/\(serviceLabel)"]
         try? proc.run()
         proc.waitUntilExit()
+        
+        let disProc = Process()
+        disProc.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        disProc.arguments = ["disable", "gui/\(uid)/\(serviceLabel)"]
+        try? disProc.run()
+        disProc.waitUntilExit()
+        
         try? fm.removeItem(atPath: servicePlist)
     }
 }
@@ -266,11 +313,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             setupLaunchdKeepAlive(enable: true, config: config)
             pollAndLoadWebUI()
         } else {
+            setupLaunchdKeepAlive(enable: false, config: config)
             if !isPortFree(port) {
-                pollAndLoadWebUI()
-            } else {
-                spawnDsh()
+                logLine("port \(port) occupied on launch in normal mode, releasing orphan processes...")
+                killPortHolders(port)
+                usleep(200_000)
             }
+            spawnDsh()
         }
     }
     
@@ -387,7 +436,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         config.keepAlive = true
         saveConfig(config)
         updateMenuStates()
+        stopDirectBackend()
         setupLaunchdKeepAlive(enable: true, config: config)
+        pollAndLoadWebUI()
         logLine("switched to KeepAlive mode")
         
         let alert = NSAlert()
@@ -402,6 +453,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         saveConfig(config)
         updateMenuStates()
         setupLaunchdKeepAlive(enable: false, config: config)
+        stopDirectBackend()
+        spawnDsh()
         logLine("switched to Normal mode")
         
         let alert = NSAlert()
@@ -625,12 +678,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
 
+    func stopDirectBackend() {
+        if let dp = dshProcess, dp.isRunning {
+            let pid = dp.processIdentifier
+            dp.terminate()
+            kill(-pid, SIGTERM)
+            let deadline = Date().addingTimeInterval(2)
+            while dp.isRunning && Date() < deadline { usleep(100_000) }
+            if dp.isRunning {
+                kill(-pid, SIGKILL)
+                kill(pid, SIGKILL)
+            }
+        }
+        dshProcess = nil
+        readyLineSeen = false
+        killPortHolders(port)
+    }
+
     func windowWillClose(_ notification: Notification) {
         if config.keepAlive {
             exit(0)
         } else {
             beginShutdown()
         }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -654,14 +728,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard !stopping else { return }
         stopping = true
         logLine("=== shutdown Native DSH Web (Normal Mode) ===")
-        
-        if let dp = dshProcess, dp.isRunning {
-            dp.terminate()
-            let deadline = Date().addingTimeInterval(3)
-            while dp.isRunning && Date() < deadline { usleep(100_000) }
-            if dp.isRunning { kill(dp.processIdentifier, SIGKILL) }
-        }
-        
+        stopDirectBackend()
         exit(0)
     }
 }
